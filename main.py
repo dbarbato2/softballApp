@@ -368,9 +368,9 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                  "playedTeams": "Played Teams"})
     teamTrack.index = blankIndex
     leagueSched = leagueSched.rename(columns={"date": "Date", "homeTeam": "Home Team", "awayTeam": "Away Team"})
-    st.header(leag + " team tracking summary for " + seas + " season")
+    st.header(leag + " Team Tracking Summary for " + seas + " Season")
     st.table(teamTrack.style)
-    st.header(leag + " schedule for " + seas + " season")
+    st.header(leag + " Schedule for " + seas + " Season")
     st.table(leagueSched)
 
 
