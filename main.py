@@ -15,7 +15,8 @@ import random
 # Title the app
 st.title('Softball Scheduling - Metrowest League')
 us_holidays = holidays.UnitedStates()
-
+### Indicator on whether to run the app in debug mode (makes the schedule calculation repetable)
+debugInd = 1
 
 # Function for creating the schedule
 def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
@@ -188,8 +189,8 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 endFlag1 = 0
             if i2 < len(awayTeams):
                 for j2 in range(i2 + 1, len(awayTeams)):
-                    if awayTeams[j2] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[j2]) != re.sub(
-                            '[^A-Za-z]+', '', homeTeams[i2]):
+                    ptstr2 = teamTrack.loc[teamTrack['team'] == homeTeams[j2], 'playedTeams']
+                    if awayTeams[j2] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[j2]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in str(ptstr2) and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[j2]):
                         tempTeam1 = awayTeams[j2]
                     else:
                         tempTeam1 = ''
@@ -201,8 +202,8 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
             if endFlag1 == 0:
                 if i2 > 1:
                     for j3 in range(0, i2):
-                        if awayTeams[j3] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[j3]) != re.sub(
-                                '[^A-Za-z]+', '', homeTeams[i2]):
+                        ptstr3 = teamTrack.loc[teamTrack['team'] == homeTeams[j3], 'playedTeams']
+                        if awayTeams[j3] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[j3]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in str(ptstr3) and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[j3]):
                             tempTeam1 = awayTeams[j3]
                         else:
                             tempTeam1 = ''
@@ -214,7 +215,8 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
             if endFlag1 == 0:
                 if i2 < len(awayTeams):
                     for j4 in range(i2 + 1, len(awayTeams)):
-                        if awayTeams[j4] not in str(ptstr):
+                        ptstr4 = teamTrack.loc[teamTrack['team'] == homeTeams[j4], 'playedTeams']
+                        if awayTeams[j4] not in str(ptstr) and awayTeams[i2] not in str(ptstr4):
                             tempTeam1 = awayTeams[j4]
                         else:
                             tempTeam1 = ''
@@ -226,7 +228,8 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
             if endFlag1 == 0:
                 if i2 > 1:
                     for j5 in range(1, i2 - 1):
-                        if awayTeams[j5] not in str(ptstr):
+                        ptstr5 = teamTrack.loc[teamTrack['team'] == homeTeams[j5], 'playedTeams']
+                        if awayTeams[j5] not in str(ptstr) and awayTeams[i2] not in str(ptstr5):
                             tempTeam1 = awayTeams[j5]
                         else:
                             tempTeam1 = ''
@@ -239,8 +242,8 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 endFlag2 = 0
                 if i2 < len(awayTeams):
                     for k2 in range(i2 + 1, len(awayTeams)):
-                        if awayTeams[k2] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[k2]) != re.sub(
-                                '[^A-Za-z]+', '', homeTeams[i2]):
+                        ptstr6 = teamTrack.loc[teamTrack['team'] == homeTeams[k2], 'playedTeams']
+                        if awayTeams[k2] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[k2]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in str(ptstr6) and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[k2]):
                             tempTeam2 = awayTeams[k2]
                         else:
                             tempTeam2 = ''
@@ -252,8 +255,8 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 if endFlag2 == 0:
                     if i2 > 1:
                         for k3 in range(1, i2 - 1):
-                            if awayTeams[k3] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[k3]) != re.sub(
-                                    '[^A-Za-z]+', '', homeTeams[i2]):
+                            ptstr7 = teamTrack.loc[teamTrack['team'] == homeTeams[k3], 'playedTeams']
+                            if awayTeams[k3] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[k3]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in str(ptstr7) and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[k3]):
                                 tempTeam2 = awayTeams[k3]
                             else:
                                 tempTeam2 = ''
@@ -265,7 +268,8 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 if endFlag2 == 0:
                     if i2 < len(awayTeams):
                         for k4 in range(i2 + 1, len(awayTeams)):
-                            if awayTeams[k4] not in str(ptstr):
+                            ptstr8 = teamTrack.loc[teamTrack['team'] == homeTeams[k4], 'playedTeams']
+                            if awayTeams[k4] not in str(ptstr) and awayTeams[i2] not in str(ptstr8):
                                 tempTeam2 = awayTeams[k4]
                             else:
                                 tempTeam2 = ''
@@ -277,7 +281,8 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 if endFlag2 == 0:
                     if i2 > 1:
                         for k5 in range(1, i2 - 1):
-                            if awayTeams[k5] not in str(ptstr):
+                            ptstr9 = teamTrack.loc[teamTrack['team'] == homeTeams[k5], 'playedTeams']
+                            if awayTeams[k5] not in str(ptstr) and awayTeams[i2] not in str(ptstr9):
                                 tempTeam2 = awayTeams[k5]
                             else:
                                 tempTeam2 = ''
@@ -290,8 +295,8 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 endFlag3 = 0
                 if i2 < len(awayTeams):
                     for l2 in range(i2 + 1, len(awayTeams)):
-                        if awayTeams[l2] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[l2]) != re.sub(
-                                '[^A-Za-z]+', '', homeTeams[i2]):
+                        ptstr10 = teamTrack.loc[teamTrack['team'] == homeTeams[l2], 'playedTeams']
+                        if awayTeams[l2] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[l2]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in str(ptstr10) and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[l2]):
                             tempTeam3 = awayTeams[l2]
                         else:
                             tempTeam3 = ''
@@ -303,8 +308,8 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 if endFlag3 == 0:
                     if i2 > 1:
                         for l3 in range(1, i2 - 1):
-                            if awayTeams[l3] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[l3]) != re.sub(
-                                    '[^A-Za-z]+', '', homeTeams[i2]):
+                            ptstr11 = teamTrack.loc[teamTrack['team'] == homeTeams[l3], 'playedTeams']
+                            if awayTeams[l3] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[l3]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in str(ptstr11) and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[l3]):
                                 tempTeam3 = awayTeams[l3]
                             else:
                                 tempTeam3 = ''
@@ -414,7 +419,10 @@ if numTeams > 1:
 
 schedButton = st.sidebar.button("Calculate Schedule")
 ### Random seed for choosing teams, this should be different each time the button is pressed so a new schedule is generated
-randomSeed = random.randint(1, 100)
+if debugInd == 1:
+    randomSeed = 10
+else:
+    randomSeed = random.randint(1, 100)
 
 # Main Panel Design
 if schedButton:

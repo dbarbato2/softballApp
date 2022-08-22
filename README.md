@@ -40,8 +40,11 @@ this selection are discussed above.
 of teams playing within each town. If x towns are selected, town names and number of teams must be selected for all x towns. Naming convention
 in the schedule will be 'Town Name' Team #'i', where 'Town Name' is the text entered by the user and 'i' is the sequentially numbering of the team.
 Currently, custom team names are not allowed, but could be created using 1 team per town and custom names for each town.
+
 After all of the parameters have been selected, press the 'Calculate Schedule' button to build the schedule.
 Once run, the application will return a Streamlit table that tracks a summary for each team that includes the number of home
 games, the number of away games, the number of byes (should be 0 if there are an even number of teams), and a list containing 
 each team they are playing on the schedule. It will also output a Streamlit table containing a row for each game on the schedule
 along with the date of the game, the home team, and the away team. Game times are not specified.
+
+_Note that each time the 'Calculate Schedule' button is pressed (if the debug indicator is 0) a new schedule is created._
