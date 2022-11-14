@@ -15,8 +15,8 @@ import random
 # Title the app
 st.title('Softball Scheduling - Metrowest League')
 us_holidays = holidays.UnitedStates()
-### Indicator on whether to run the app in debug mode (makes the schedule calculation repetable)
-debugInd = 1
+### Indicator on whether to run the app in debug mode (makes the schedule calculation repeatable)
+debugInd = 0
 
 # Function for creating the schedule
 def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
@@ -100,8 +100,8 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
         else:
             byeTm = ""
         return byeTm
-
     #### End byeTeamFunc function
+
     #### sub-function to choose the teams who have played the least or highest amount of home games
     def homeGameFunc(teamstoChooseFrom, minOrMax):
         if teamstoChooseFrom.empty:
@@ -116,8 +116,39 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
         else:
             teamsChosen = teamswHomeGames[teamTrack['homeGames'] == max(teamTrack['homeGames'])].team
         return teamsChosen
-
     #### End homeGameFunc function
+
+    #### sub-function that searches through the given indices to select a new away team for the home team to play, avoiding duplicate matchups and/or matchups with the same town (for any re-assigned games as well)
+    def dupSameTownCheckFunc(startIndex, endIndex, parentIndex, dupInd, stInd):
+        st.write("in dupSameTownCheckFunc code")
+        ef = 0
+        for k in range(startIndex, endIndex):
+            ptstr = teamTrack.loc[teamTrack['team'] == homeTeams[parentIndex], 'playedTeams']
+            ptstr2 = teamTrack.loc[teamTrack['team'] == homeTeams[k], 'playedTeams']
+            with pd.option_context('display.max_colwidth', -1):
+                ps = ptstr.to_string()
+                ps2 = ptstr2.to_string()
+            if dupInd == 1 and stInd == 1:
+                if awayTeams[k] not in ps and re.sub('[^A-Za-z]+', '', awayTeams[k]) != re.sub('[^A-Za-z]+', '', homeTeams[parentIndex]) and awayTeams[parentIndex] not in ps2 and re.sub('[^A-Za-z]+', '', awayTeams[parentIndex]) != re.sub('[^A-Za-z]+', '', homeTeams[k]):
+                        tempTeam1 = awayTeams[k]
+                else:
+                        tempTeam1 = ''
+            if dupInd == 1 and stInd == 0:
+                if awayTeams[k] not in ps and awayTeams[parentIndex] not in ps2:
+                        tempTeam1 = awayTeams[k]
+                else:
+                        tempTeam1 = ''
+            if dupInd == 0 and stInd == 1:
+                if awayTeams[k] not in ps and awayTeams[parentIndex] not in ps2:
+                        tempTeam1 = awayTeams[k]
+                else:
+                        tempTeam1 = ''
+            if (tempTeam1 != '' and ef == 0):
+                ef = 1
+                awayTeams[k] = awayTeams[parentIndex]
+                awayTeams[parentIndex] = tempTeam1
+        return ef
+    #### End dupSameTownCheckFunc function
 
     for i in range(1, (schedGames + 1)):
         startIndex = (gamesPerGameDay * (i - 1)) + 1
@@ -125,6 +156,7 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
         for j in range(startIndex, endIndex + 1):
             leagueSched.loc[j - 1, 'date'] = gameDay
         ##### First, select the bye team, users can not adjust this preference
+        st.write("gameday =", gameDay)
         byeTeams = byeTeamFunc()
         ##### Second, let's make sure home games are evened out as much as possible when choosing home teams this week
         if (totalTeams % 2 == 1):
@@ -134,7 +166,9 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
         else:
             teamswMinHomeGames = homeGameFunc(teamTrack['team'], 'min')
             firstChoiceTeams = [x for x in teamList if x in teamswMinHomeGames.values]
+            st.write("firstChoiceTeams = ", firstChoiceTeams)
         if (len(firstChoiceTeams) < gamesPerGameDay):
+            st.write("inside firstChoiceTeams if")
             ##### find how many more home teams need to be chosen for this date
             homeGameDiff = gamesPerGameDay - len(firstChoiceTeams)
             ##### Third, choose from among the remaining teams, those who have not played the most home games
@@ -142,7 +176,9 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
             sct = set([y for y in teamList if y not in byeTeams.values])
             sct2 = set([y2 for y2 in sct if y2 not in firstChoiceTeams])
             secondChoiceTeams = set([y3 for y3 in sct2 if y3 not in teamswMaxHomeGames])
+            st.write("secondChoiceTeams = ", secondChoiceTeams)
             if (len(secondChoiceTeams) < homeGameDiff):
+                st.write("inside secondChoiceTeams if")
                 ##### find how many more home teams need to be chosen for this date
                 homeGameDiff2 = gamesPerGameDay - len(firstChoiceTeams) - len(secondChoiceTeams)
                 ##### Last, choose randomly from among the remaining teams
@@ -155,6 +191,7 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 tiTemp2 = tiTemp.union(secondChoiceTeams)
                 teamsIncluded = pd.DataFrame(tiTemp2.union(firstChoiceTeams))
             else:
+                st.write("inside secondChoiceTeams else")
                 # st.write("pd.DataFrame(secondChoiceTeams) = ", pd.DataFrame(secondChoiceTeams).sample(n=homeGameDiff, random_state=rs, replace=False))
                 tiTemp = set(
                     pd.DataFrame(secondChoiceTeams).sample(n=homeGameDiff, random_state=rs, replace=False).squeeze(
@@ -171,14 +208,22 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
             awayTeams = set([z2 for z2 in awt if z2 not in set(homeTeams.squeeze(axis=1))])
         else:
             awayTeams = set([z for z in list(teamList) if z not in set(homeTeams.squeeze(axis=1))])
+            st.write("awayTeams = ", awayTeams)
         ##### Convert the home teams and away teams sets into lists so we can subset them
         homeTeams = homeTeams[0].tolist()
         awayTeams = list(awayTeams)
         endFlag1 = 1
         for i2 in range(0, len(homeTeams)):
+            st.write("i2 = ", i2)
+            st.write("awayTeams[i2] = ", awayTeams[i2])
+            st.write("homeTeams[i2] = ", homeTeams[i2])
             ptstr = teamTrack.loc[teamTrack['team'] == homeTeams[i2], 'playedTeams']
-            if awayTeams[i2] in str(ptstr):
+            with pd.option_context('display.max_colwidth', -1):
+                ps = ptstr.to_string()
+            st.write("str(ps) = ", ps)
+            if awayTeams[i2] in ps:
                 dupTeam = 1
+                st.write("in dupTeam assignment")
             else:
                 dupTeam = 0
             if re.sub('[^A-Za-z]+', '', awayTeams[i2]) == re.sub('[^A-Za-z]+', '', homeTeams[i2]):
@@ -187,10 +232,14 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 sameTown = 0
             if dupTeam == 1 and sameTown == 1:
                 endFlag1 = 0
+            if i2 < len(awayTeams) and endFlag1 == 0:
+                endFlag1 = dupSameTownCheckFunc(i2 + 1, len(awayTeams), i2, 1, 1)
             if i2 < len(awayTeams):
                 for j2 in range(i2 + 1, len(awayTeams)):
                     ptstr2 = teamTrack.loc[teamTrack['team'] == homeTeams[j2], 'playedTeams']
-                    if awayTeams[j2] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[j2]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in str(ptstr2) and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[j2]):
+                    with pd.option_context('display.max_colwidth', -1):
+                        ps2 = ptstr2.to_string()
+                    if awayTeams[j2] not in ps and re.sub('[^A-Za-z]+', '', awayTeams[j2]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in ps2 and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[j2]):
                         tempTeam1 = awayTeams[j2]
                     else:
                         tempTeam1 = ''
@@ -203,7 +252,9 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 if i2 > 1:
                     for j3 in range(0, i2):
                         ptstr3 = teamTrack.loc[teamTrack['team'] == homeTeams[j3], 'playedTeams']
-                        if awayTeams[j3] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[j3]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in str(ptstr3) and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[j3]):
+                        with pd.option_context('display.max_colwidth', -1):
+                            ps3 = ptstr3.to_string()
+                        if awayTeams[j3] not in ps and re.sub('[^A-Za-z]+', '', awayTeams[j3]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in ps3 and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[j3]):
                             tempTeam1 = awayTeams[j3]
                         else:
                             tempTeam1 = ''
@@ -214,9 +265,12 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
             ###### If we can't get matchups avoiding duplicates and same town matchups, at least avoid duplicates
             if endFlag1 == 0:
                 if i2 < len(awayTeams):
+                    st.write("in dupTeam Only if")
                     for j4 in range(i2 + 1, len(awayTeams)):
                         ptstr4 = teamTrack.loc[teamTrack['team'] == homeTeams[j4], 'playedTeams']
-                        if awayTeams[j4] not in str(ptstr) and awayTeams[i2] not in str(ptstr4):
+                        with pd.option_context('display.max_colwidth', -1):
+                            ps4 = ptstr4.to_string()
+                        if awayTeams[j4] not in ps and awayTeams[i2] not in ps4:
                             tempTeam1 = awayTeams[j4]
                         else:
                             tempTeam1 = ''
@@ -229,7 +283,9 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 if i2 > 1:
                     for j5 in range(1, i2 - 1):
                         ptstr5 = teamTrack.loc[teamTrack['team'] == homeTeams[j5], 'playedTeams']
-                        if awayTeams[j5] not in str(ptstr) and awayTeams[i2] not in str(ptstr5):
+                        with pd.option_context('display.max_colwidth', -1):
+                            ps5 = ptstr5.to_string()
+                        if awayTeams[j5] not in ps and awayTeams[i2] not in ps5:
                             tempTeam1 = awayTeams[j5]
                         else:
                             tempTeam1 = ''
@@ -241,9 +297,12 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
             if (dupTeam == 1 and sameTown == 0):
                 endFlag2 = 0
                 if i2 < len(awayTeams):
+                    st.write("in second dupTeam if")
                     for k2 in range(i2 + 1, len(awayTeams)):
                         ptstr6 = teamTrack.loc[teamTrack['team'] == homeTeams[k2], 'playedTeams']
-                        if awayTeams[k2] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[k2]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in str(ptstr6) and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[k2]):
+                        with pd.option_context('display.max_colwidth', -1):
+                            ps6 = ptstr6.to_string()
+                        if awayTeams[k2] not in ps and re.sub('[^A-Za-z]+', '', awayTeams[k2]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in ps6 and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[k2]):
                             tempTeam2 = awayTeams[k2]
                         else:
                             tempTeam2 = ''
@@ -256,7 +315,9 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                     if i2 > 1:
                         for k3 in range(1, i2 - 1):
                             ptstr7 = teamTrack.loc[teamTrack['team'] == homeTeams[k3], 'playedTeams']
-                            if awayTeams[k3] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[k3]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in str(ptstr7) and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[k3]):
+                            with pd.option_context('display.max_colwidth', -1):
+                                ps7 = ptstr7.to_string()
+                            if awayTeams[k3] not in ps and re.sub('[^A-Za-z]+', '', awayTeams[k3]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in ps7 and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[k3]):
                                 tempTeam2 = awayTeams[k3]
                             else:
                                 tempTeam2 = ''
@@ -267,9 +328,12 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 ###### Now that we can't get both, at least try to remove the duplicate matchup
                 if endFlag2 == 0:
                     if i2 < len(awayTeams):
+                        st.write("in third dupTeam if")
                         for k4 in range(i2 + 1, len(awayTeams)):
                             ptstr8 = teamTrack.loc[teamTrack['team'] == homeTeams[k4], 'playedTeams']
-                            if awayTeams[k4] not in str(ptstr) and awayTeams[i2] not in str(ptstr8):
+                            with pd.option_context('display.max_colwidth', -1):
+                                ps8 = ptstr8.to_string()
+                            if awayTeams[k4] not in ps and awayTeams[i2] not in ps8:
                                 tempTeam2 = awayTeams[k4]
                             else:
                                 tempTeam2 = ''
@@ -282,7 +346,9 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                     if i2 > 1:
                         for k5 in range(1, i2 - 1):
                             ptstr9 = teamTrack.loc[teamTrack['team'] == homeTeams[k5], 'playedTeams']
-                            if awayTeams[k5] not in str(ptstr) and awayTeams[i2] not in str(ptstr9):
+                            with pd.option_context('display.max_colwidth', -1):
+                                ps9 = ptstr9.to_string()
+                            if awayTeams[k5] not in ps and awayTeams[i2] not in ps9:
                                 tempTeam2 = awayTeams[k5]
                             else:
                                 tempTeam2 = ''
@@ -294,9 +360,12 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
             if (dupTeam == 0 and sameTown == 1):
                 endFlag3 = 0
                 if i2 < len(awayTeams):
+                    st.write("in fourth dupTeam if")
                     for l2 in range(i2 + 1, len(awayTeams)):
                         ptstr10 = teamTrack.loc[teamTrack['team'] == homeTeams[l2], 'playedTeams']
-                        if awayTeams[l2] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[l2]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in str(ptstr10) and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[l2]):
+                        with pd.option_context('display.max_colwidth', -1):
+                            ps10 = ptstr10.to_string()
+                        if awayTeams[l2] not in ps and re.sub('[^A-Za-z]+', '', awayTeams[l2]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in ps10 and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[l2]):
                             tempTeam3 = awayTeams[l2]
                         else:
                             tempTeam3 = ''
@@ -309,7 +378,9 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                     if i2 > 1:
                         for l3 in range(1, i2 - 1):
                             ptstr11 = teamTrack.loc[teamTrack['team'] == homeTeams[l3], 'playedTeams']
-                            if awayTeams[l3] not in str(ptstr) and re.sub('[^A-Za-z]+', '', awayTeams[l3]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in str(ptstr11) and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[l3]):
+                            with pd.option_context('display.max_colwidth', -1):
+                                ps11 = ptstr11.to_string()
+                            if awayTeams[l3] not in ps and re.sub('[^A-Za-z]+', '', awayTeams[l3]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in ps11 and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[l3]):
                                 tempTeam3 = awayTeams[l3]
                             else:
                                 tempTeam3 = ''
@@ -355,7 +426,7 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
         ##### For weekend games, we need an added check to see if the following Monday is a holiday, making it a holiday weekend
         elif gameDay.weekday() in range(5, 7):
             if ((gameDay + dt.timedelta(days=7)) in us_holidays or (gameDay + dt.timedelta(days=8)) in us_holidays or (
-                    gameDay + dt.timedelta(days=7)) in us_holidays):
+                    gameDay + dt.timedelta(days=9)) in us_holidays):
                 gameDay = gameDay + dt.timedelta(days=14)
             else:
                 gameDay = gameDay + dt.timedelta(days=7)
