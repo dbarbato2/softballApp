@@ -139,11 +139,11 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 else:
                         tempTeam1 = ''
             if dupInd == 0 and stInd == 1:
-                if awayTeams[k] not in ps and awayTeams[parentIndex] not in ps2:
+                if re.sub('[^A-Za-z]+', '', awayTeams[k]) != re.sub('[^A-Za-z]+', '', homeTeams[parentIndex]) and re.sub('[^A-Za-z]+', '', awayTeams[parentIndex]) != re.sub('[^A-Za-z]+', '', homeTeams[k]):
                         tempTeam1 = awayTeams[k]
                 else:
                         tempTeam1 = ''
-            if (tempTeam1 != '' and ef == 0):
+            if tempTeam1 != '' and ef == 0:
                 ef = 1
                 awayTeams[k] = awayTeams[parentIndex]
                 awayTeams[parentIndex] = tempTeam1
@@ -232,8 +232,12 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 sameTown = 0
             if dupTeam == 1 and sameTown == 1:
                 endFlag1 = 0
-            if i2 < len(awayTeams) and endFlag1 == 0:
+            if i2 < len(awayTeams):
+                st.write("prior to the new function")
                 endFlag1 = dupSameTownCheckFunc(i2 + 1, len(awayTeams), i2, 1, 1)
+                st.write("endFlag1 = ", endFlag1)
+                st.write("awayTeams[i2] = ", awayTeams[i2])
+                st.write("following the new function")
             if i2 < len(awayTeams):
                 for j2 in range(i2 + 1, len(awayTeams)):
                     ptstr2 = teamTrack.loc[teamTrack['team'] == homeTeams[j2], 'playedTeams']
