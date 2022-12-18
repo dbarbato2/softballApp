@@ -16,7 +16,7 @@ import random
 st.title('Softball Scheduling - Metrowest League')
 us_holidays = holidays.UnitedStates()
 ### Indicator on whether to run the app in debug mode (makes the schedule calculation repeatable)
-debugInd = 0
+debugInd = 1
 
 # Function for creating the schedule
 def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
@@ -139,7 +139,7 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 else:
                         tempTeam1 = ''
             if dupInd == 0 and stInd == 1:
-                if awayTeams[k] not in ps and awayTeams[parentIndex] not in ps2:
+                if re.sub('[^A-Za-z]+', '', awayTeams[k]) != re.sub('[^A-Za-z]+', '', homeTeams[parentIndex]) and re.sub('[^A-Za-z]+', '', awayTeams[parentIndex]) != re.sub('[^A-Za-z]+', '', homeTeams[k]):
                         tempTeam1 = awayTeams[k]
                 else:
                         tempTeam1 = ''
