@@ -208,6 +208,7 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
             # awayTeams = set([z for z in teamList if z not in byeTeams.values]).difference(set(homeTeams))
             awt = set([z for z in teamList if z not in byeTeams.values])
             awayTeams = set([z2 for z2 in awt if z2 not in set(homeTeams.squeeze(axis=1))])
+            st.write("awayTeams = ", awayTeams)
         else:
             awayTeams = set([z for z in list(teamList) if z not in set(homeTeams.squeeze(axis=1))])
             st.write("awayTeams = ", awayTeams)
@@ -230,27 +231,34 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 dupTeam = 0
             if re.sub('[^A-Za-z]+', '', awayTeams[i2]) == re.sub('[^A-Za-z]+', '', homeTeams[i2]):
                 sameTown = 1
+                st.write("in sameTown assignment")
             else:
                 sameTown = 0
-            if dupTeam == 1 and sameTown == 1:
+            if dupTeam == 1 or sameTown == 1:
                 endFlag1 = 0
             if i2 < len(awayTeams) and endFlag1 == 0:
                 endFlag1 = dupSameTownCheckFunc(i2 + 1, len(awayTeams), i2, 1, 1)
+                st.write("After first dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
             ###### If we've gotten to the end and there is a still a duplicate match, check back at the beginning
             if i2 > 0 and endFlag1 == 0:
                 endFlag1 = dupSameTownCheckFunc(0, i2, i2, 1, 1)
+                st.write("After second dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
             ###### If we can't get matchups avoiding duplicates and same town matchups, at least avoid duplicates
             if i2 < len(awayTeams) and endFlag1 == 0:
                 endFlag1 = dupSameTownCheckFunc(i2 + 1, len(awayTeams), i2, 1, 0)
+                st.write("After third dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
             ###### If we've gotten to the end and there is a still a duplicate match, check back at the beginning
             if i2 > 0 and endFlag1 == 0:
                 endFlag1 = dupSameTownCheckFunc(0, i2, i2, 1, 0)
+                st.write("After fourth dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
             ###### If we still can't avoid duplicates, at least try and avoid match-ups between teams in the same town as a last resort
             if i2 < len(awayTeams) and endFlag1 == 0:
                 endFlag1 = dupSameTownCheckFunc(i2 + 1, len(awayTeams), i2, 0, 1)
+                st.write("After fifth dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
             ###### If we've gotten to the end and there is a still a same town match-up, check back at the beginning
             if i2 > 0 and endFlag1 == 0:
                 endFlag1 = dupSameTownCheckFunc(0, i2, i2, 0, 1)
+                st.write("After sixth dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
         teamIndex = 0
         for l in range(startIndex - 1, endIndex):
             leagueSched.loc[l, 'homeTeam'] = homeTeams[teamIndex]
