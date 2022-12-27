@@ -2,7 +2,9 @@
 ##########Backlog Items##############
 # 1. Format the tables that output the schedule
 # 2. Functionality to limit the number of home games on a single day per town
-#TTTTTTTTT
+
+####Test Mode - Modular Branch
+
 import datetime as dt
 import math
 from random import sample
@@ -168,7 +170,7 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
             firstChoiceTeams = [x for x in teamList if x in teamswMinHomeGames.values]
             st.write("firstChoiceTeams = ", firstChoiceTeams)
         if (len(firstChoiceTeams) < gamesPerGameDay):
-            st.write("inside firstChoiceTeams if")
+            st.write("inside firstChoiceTeams if, need more home teams")
             ##### find how many more home teams need to be chosen for this date
             homeGameDiff = gamesPerGameDay - len(firstChoiceTeams)
             ##### Third, choose from among the remaining teams, those who have not played the most home games
@@ -178,7 +180,7 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
             secondChoiceTeams = set([y3 for y3 in sct2 if y3 not in teamswMaxHomeGames])
             st.write("secondChoiceTeams = ", secondChoiceTeams)
             if (len(secondChoiceTeams) < homeGameDiff):
-                st.write("inside secondChoiceTeams if")
+                st.write("inside secondChoiceTeams if, still don't have enough home teams")
                 ##### find how many more home teams need to be chosen for this date
                 homeGameDiff2 = gamesPerGameDay - len(firstChoiceTeams) - len(secondChoiceTeams)
                 ##### Last, choose randomly from among the remaining teams
@@ -191,7 +193,7 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 tiTemp2 = tiTemp.union(secondChoiceTeams)
                 teamsIncluded = pd.DataFrame(tiTemp2.union(firstChoiceTeams))
             else:
-                st.write("inside secondChoiceTeams else")
+                st.write("inside secondChoiceTeams else, found enough home teams")
                 # st.write("pd.DataFrame(secondChoiceTeams) = ", pd.DataFrame(secondChoiceTeams).sample(n=homeGameDiff, random_state=rs, replace=False))
                 tiTemp = set(
                     pd.DataFrame(secondChoiceTeams).sample(n=homeGameDiff, random_state=rs, replace=False).squeeze(
@@ -234,160 +236,21 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 endFlag1 = 0
             if i2 < len(awayTeams) and endFlag1 == 0:
                 endFlag1 = dupSameTownCheckFunc(i2 + 1, len(awayTeams), i2, 1, 1)
-            if i2 < len(awayTeams):
-                for j2 in range(i2 + 1, len(awayTeams)):
-                    ptstr2 = teamTrack.loc[teamTrack['team'] == homeTeams[j2], 'playedTeams']
-                    with pd.option_context('display.max_colwidth', -1):
-                        ps2 = ptstr2.to_string()
-                    if awayTeams[j2] not in ps and re.sub('[^A-Za-z]+', '', awayTeams[j2]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in ps2 and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[j2]):
-                        tempTeam1 = awayTeams[j2]
-                    else:
-                        tempTeam1 = ''
-                    if tempTeam1 != '' and endFlag1 == 0:
-                        endFlag1 = 1
-                        awayTeams[j2] = awayTeams[i2]
-                        awayTeams[i2] = tempTeam1
             ###### If we've gotten to the end and there is a still a duplicate match, check back at the beginning
-            if endFlag1 == 0:
-                if i2 > 1:
-                    for j3 in range(0, i2):
-                        ptstr3 = teamTrack.loc[teamTrack['team'] == homeTeams[j3], 'playedTeams']
-                        with pd.option_context('display.max_colwidth', -1):
-                            ps3 = ptstr3.to_string()
-                        if awayTeams[j3] not in ps and re.sub('[^A-Za-z]+', '', awayTeams[j3]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in ps3 and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[j3]):
-                            tempTeam1 = awayTeams[j3]
-                        else:
-                            tempTeam1 = ''
-                        if tempTeam1 != '' and endFlag1 == 0:
-                            endFlag1 = 1
-                            awayTeams[j3] = awayTeams[i2]
-                            awayTeams[i2] = tempTeam1
+            if i2 > 0 and endFlag1 == 0:
+                endFlag1 = dupSameTownCheckFunc(0, i2, i2, 1, 1)
             ###### If we can't get matchups avoiding duplicates and same town matchups, at least avoid duplicates
-            if endFlag1 == 0:
-                if i2 < len(awayTeams):
-                    st.write("in dupTeam Only if")
-                    for j4 in range(i2 + 1, len(awayTeams)):
-                        ptstr4 = teamTrack.loc[teamTrack['team'] == homeTeams[j4], 'playedTeams']
-                        with pd.option_context('display.max_colwidth', -1):
-                            ps4 = ptstr4.to_string()
-                        if awayTeams[j4] not in ps and awayTeams[i2] not in ps4:
-                            tempTeam1 = awayTeams[j4]
-                        else:
-                            tempTeam1 = ''
-                        if (tempTeam1 != '' and endFlag1 == 0):
-                            endFlag1 = 1
-                            awayTeams[j4] = awayTeams[i2]
-                            awayTeams[i2] = tempTeam1
+            if i2 < len(awayTeams) and endFlag1 == 0:
+                endFlag1 = dupSameTownCheckFunc(i2 + 1, len(awayTeams), i2, 1, 0)
             ###### If we've gotten to the end and there is a still a duplicate match, check back at the beginning
-            if endFlag1 == 0:
-                if i2 > 1:
-                    for j5 in range(1, i2 - 1):
-                        ptstr5 = teamTrack.loc[teamTrack['team'] == homeTeams[j5], 'playedTeams']
-                        with pd.option_context('display.max_colwidth', -1):
-                            ps5 = ptstr5.to_string()
-                        if awayTeams[j5] not in ps and awayTeams[i2] not in ps5:
-                            tempTeam1 = awayTeams[j5]
-                        else:
-                            tempTeam1 = ''
-                        if (tempTeam1 != '' and endFlag1 == 0):
-                            endFlag1 = 1
-                            awayTeams[j5] = awayTeams[i2]
-                            awayTeams[i2] = tempTeam1
-            ###### See if we can find a matchup that is not a duplicate and is also not two teams from the same town playing, then make sure to remove the duplicate
-            if (dupTeam == 1 and sameTown == 0):
-                endFlag2 = 0
-                if i2 < len(awayTeams):
-                    st.write("in second dupTeam if")
-                    for k2 in range(i2 + 1, len(awayTeams)):
-                        ptstr6 = teamTrack.loc[teamTrack['team'] == homeTeams[k2], 'playedTeams']
-                        with pd.option_context('display.max_colwidth', -1):
-                            ps6 = ptstr6.to_string()
-                        if awayTeams[k2] not in ps and re.sub('[^A-Za-z]+', '', awayTeams[k2]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in ps6 and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[k2]):
-                            tempTeam2 = awayTeams[k2]
-                        else:
-                            tempTeam2 = ''
-                        if (tempTeam2 != '' and endFlag2 == 0):
-                            endFlag2 = 1
-                            awayTeams[k2] = awayTeams[i2]
-                            awayTeams[i2] = tempTeam2
-                ###### If we've gotten to the end and there is a still a duplicate match, check back at the beginning
-                if endFlag2 == 0:
-                    if i2 > 1:
-                        for k3 in range(1, i2 - 1):
-                            ptstr7 = teamTrack.loc[teamTrack['team'] == homeTeams[k3], 'playedTeams']
-                            with pd.option_context('display.max_colwidth', -1):
-                                ps7 = ptstr7.to_string()
-                            if awayTeams[k3] not in ps and re.sub('[^A-Za-z]+', '', awayTeams[k3]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in ps7 and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[k3]):
-                                tempTeam2 = awayTeams[k3]
-                            else:
-                                tempTeam2 = ''
-                            if (tempTeam2 != '' and endFlag2 == 0):
-                                endFlag2 = 1
-                                awayTeams[k3] = awayTeams[i2]
-                                awayTeams[i2] = tempTeam2
-                ###### Now that we can't get both, at least try to remove the duplicate matchup
-                if endFlag2 == 0:
-                    if i2 < len(awayTeams):
-                        st.write("in third dupTeam if")
-                        for k4 in range(i2 + 1, len(awayTeams)):
-                            ptstr8 = teamTrack.loc[teamTrack['team'] == homeTeams[k4], 'playedTeams']
-                            with pd.option_context('display.max_colwidth', -1):
-                                ps8 = ptstr8.to_string()
-                            if awayTeams[k4] not in ps and awayTeams[i2] not in ps8:
-                                tempTeam2 = awayTeams[k4]
-                            else:
-                                tempTeam2 = ''
-                            if tempTeam2 != '' and endFlag2 == 0:
-                                endFlag2 = 1
-                                awayTeams[k4] = awayTeams[i2]
-                                awayTeams[i2] = tempTeam2
-                ###### If we've gotten to the end and there is a still a duplicate match, check back at the beginning
-                if endFlag2 == 0:
-                    if i2 > 1:
-                        for k5 in range(1, i2 - 1):
-                            ptstr9 = teamTrack.loc[teamTrack['team'] == homeTeams[k5], 'playedTeams']
-                            with pd.option_context('display.max_colwidth', -1):
-                                ps9 = ptstr9.to_string()
-                            if awayTeams[k5] not in ps and awayTeams[i2] not in ps9:
-                                tempTeam2 = awayTeams[k5]
-                            else:
-                                tempTeam2 = ''
-                            if (tempTeam2 != '' and endFlag2 == 0):
-                                endFlag2 = 1
-                                awayTeams[k5] = awayTeams[i2]
-                                awayTeams[i2] = tempTeam2
-            ###### Duplicate teams are more of a priority, so only look forward to avoid teams from the same town playing
-            if (dupTeam == 0 and sameTown == 1):
-                endFlag3 = 0
-                if i2 < len(awayTeams):
-                    st.write("in fourth dupTeam if")
-                    for l2 in range(i2 + 1, len(awayTeams)):
-                        ptstr10 = teamTrack.loc[teamTrack['team'] == homeTeams[l2], 'playedTeams']
-                        with pd.option_context('display.max_colwidth', -1):
-                            ps10 = ptstr10.to_string()
-                        if awayTeams[l2] not in ps and re.sub('[^A-Za-z]+', '', awayTeams[l2]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in ps10 and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[l2]):
-                            tempTeam3 = awayTeams[l2]
-                        else:
-                            tempTeam3 = ''
-                        if (tempTeam3 != '' and endFlag3 == 0):
-                            endFlag3 = 1
-                            awayTeams[l2] = awayTeams[i2]
-                            awayTeams[i2] = tempTeam3
-                ##### If we've gotten to the end and there is still teams from the same town playing, check back at the beginning
-                if endFlag3 == 0:
-                    if i2 > 1:
-                        for l3 in range(1, i2 - 1):
-                            ptstr11 = teamTrack.loc[teamTrack['team'] == homeTeams[l3], 'playedTeams']
-                            with pd.option_context('display.max_colwidth', -1):
-                                ps11 = ptstr11.to_string()
-                            if awayTeams[l3] not in ps and re.sub('[^A-Za-z]+', '', awayTeams[l3]) != re.sub('[^A-Za-z]+', '', homeTeams[i2]) and awayTeams[i2] not in ps11 and re.sub('[^A-Za-z]+', '', awayTeams[i2]) != re.sub('[^A-Za-z]+', '', homeTeams[l3]):
-                                tempTeam3 = awayTeams[l3]
-                            else:
-                                tempTeam3 = ''
-                            if (tempTeam3 != '' and endFlag3 == 0):
-                                endFlag3 = 1
-                                awayTeams[l3] = awayTeams[i2]
-                                awayTeams[i2] = tempTeam3
+            if i2 > 0 and endFlag1 == 0:
+                endFlag1 = dupSameTownCheckFunc(0, i2, i2, 1, 0)
+            ###### If we still can't avoid duplicates, at least try and avoid match-ups between teams in the same town as a last resort
+            if i2 < len(awayTeams) and endFlag1 == 0:
+                endFlag1 = dupSameTownCheckFunc(i2 + 1, len(awayTeams), i2, 0, 1)
+            ###### If we've gotten to the end and there is a still a same town match-up, check back at the beginning
+            if i2 > 0 and endFlag1 == 0:
+                endFlag1 = dupSameTownCheckFunc(0, i2, i2, 0, 1)
         teamIndex = 0
         for l in range(startIndex - 1, endIndex):
             leagueSched.loc[l, 'homeTeam'] = homeTeams[teamIndex]
