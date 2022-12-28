@@ -21,7 +21,7 @@ us_holidays = holidays.UnitedStates()
 debugInd = 1
 
 # Function for creating the schedule
-def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
+def makeSchedule(seas, yr, leag, sd, ng, gm, twnm, rs):
     #### First, create the array of team names
     teamList = []
     for i in range(0, len(teams)):
@@ -87,9 +87,30 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
         teamTrack.loc[j, 'playedTeams'] = ""
     #### The Majors generally start the day after the Minors leagues start
     if (leag == 'Majors' or leag == 'Seniors'):
-        gameDay = startDay + dt.timedelta(days=1)
+        firstGameDay = startDay + dt.timedelta(days=1)
     else:
-        gameDay = startDay
+        firstGameDay = startDay
+    #### Make the schedule in Reverse in case inter-town match-ups are required on the last day, first find the last game day
+    h = firstGameDay
+    for g in range(1, schedGames):
+        if h.weekday() in range(0, 2):
+            if((h + dt.timedelta(days=2)) in us_holidays):
+                h = h + dt.timedelta(days=7)
+            else:
+                h = h + dt.timedelta(days=2)
+        elif h.weekday() in range(2, 4):
+            if ((h + dt.timedelta(days=5)) in us_holidays):
+                h = h + dt.timedelta(days=7)
+            else:
+                h = h + dt.timedelta(days=5)
+        ##### For weekend games, we need an added check to see if the following Monday is a holiday, making it a holiday weekend
+        elif h.weekday() in range(5, 7):
+            if ((h + dt.timedelta(days=7)) in us_holidays or (h + dt.timedelta(days=8)) in us_holidays or (h + dt.timedelta(days=9)) in us_holidays):
+                h = h + dt.timedelta(days=14)
+            else:
+                h = h + dt.timedelta(days=7)
+    lastGameDay = h
+    #### End makeSchedule function
 
     #### sub-function to choose the teams with the least amount of byes
     def byeTeamFunc(teamstoChooseFrom=""):
@@ -122,7 +143,7 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
 
     #### sub-function that searches through the given indices to select a new away team for the home team to play, avoiding duplicate matchups and/or matchups with the same town (for any re-assigned games as well)
     def dupSameTownCheckFunc(startIndex, endIndex, parentIndex, dupInd, stInd):
-        st.write("in dupSameTownCheckFunc code")
+        if debugInd == 1: st.write("in dupSameTownCheckFunc code")
         ef = 0
         for k in range(startIndex, endIndex):
             ptstr = teamTrack.loc[teamTrack['team'] == homeTeams[parentIndex], 'playedTeams']
@@ -152,13 +173,18 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
         return ef
     #### End dupSameTownCheckFunc function
 
-    for i in range(1, (schedGames + 1)):
+    if debugInd == 1: st.write("firstGameday =", firstGameDay)
+    if debugInd == 1: st.write("lastgameday =", lastGameDay)
+    #### Go through the assignments in reverse order in case the last game needs to have inter-town match-ups
+    gameDay = lastGameDay
+    #for i in range(1, (schedGames + 1)):
+    for i in range(schedGames, 0, -1):
         startIndex = (gamesPerGameDay * (i - 1)) + 1
         endIndex = gamesPerGameDay * i
+        if debugInd == 1: st.write("gameday =", gameDay)
         for j in range(startIndex, endIndex + 1):
             leagueSched.loc[j - 1, 'date'] = gameDay
         ##### First, select the bye team, users can not adjust this preference
-        st.write("gameday =", gameDay)
         byeTeams = byeTeamFunc()
         ##### Second, let's make sure home games are evened out as much as possible when choosing home teams this week
         if (totalTeams % 2 == 1):
@@ -168,9 +194,9 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
         else:
             teamswMinHomeGames = homeGameFunc(teamTrack['team'], 'min')
             firstChoiceTeams = [x for x in teamList if x in teamswMinHomeGames.values]
-            st.write("firstChoiceTeams = ", firstChoiceTeams)
+            if debugInd == 1: st.write("firstChoiceTeams = ", firstChoiceTeams)
         if (len(firstChoiceTeams) < gamesPerGameDay):
-            st.write("inside firstChoiceTeams if, need more home teams")
+            if debugInd == 1: st.write("inside firstChoiceTeams if, need more home teams")
             ##### find how many more home teams need to be chosen for this date
             homeGameDiff = gamesPerGameDay - len(firstChoiceTeams)
             ##### Third, choose from among the remaining teams, those who have not played the most home games
@@ -178,7 +204,7 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
             sct = set([y for y in teamList if y not in byeTeams.values])
             sct2 = set([y2 for y2 in sct if y2 not in firstChoiceTeams])
             secondChoiceTeams = set([y3 for y3 in sct2 if y3 not in teamswMaxHomeGames])
-            st.write("secondChoiceTeams = ", secondChoiceTeams)
+            if debugInd == 1: st.write("secondChoiceTeams = ", secondChoiceTeams)
             if (len(secondChoiceTeams) < homeGameDiff):
                 st.write("inside secondChoiceTeams if, still don't have enough home teams")
                 ##### find how many more home teams need to be chosen for this date
@@ -193,8 +219,7 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                 tiTemp2 = tiTemp.union(secondChoiceTeams)
                 teamsIncluded = pd.DataFrame(tiTemp2.union(firstChoiceTeams))
             else:
-                st.write("inside secondChoiceTeams else, found enough home teams")
-                # st.write("pd.DataFrame(secondChoiceTeams) = ", pd.DataFrame(secondChoiceTeams).sample(n=homeGameDiff, random_state=rs, replace=False))
+                if debugInd == 1: st.write("inside secondChoiceTeams else, found enough home teams")
                 tiTemp = set(
                     pd.DataFrame(secondChoiceTeams).sample(n=homeGameDiff, random_state=rs, replace=False).squeeze(
                         axis=1))
@@ -205,40 +230,39 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
         homeTeams = teamsIncluded
         ##### Now, choose opponents, try and avoid duplicate matches and inter-town matches if possible
         if (totalTeams % 2 == 1):
-            # awayTeams = set([z for z in teamList if z not in byeTeams.values]).difference(set(homeTeams))
             awt = set([z for z in teamList if z not in byeTeams.values])
             awayTeams = set([z2 for z2 in awt if z2 not in set(homeTeams.squeeze(axis=1))])
-            st.write("awayTeams = ", awayTeams)
+            if debugInd == 1: st.write("awayTeams = ", awayTeams)
         else:
             awayTeams = set([z for z in list(teamList) if z not in set(homeTeams.squeeze(axis=1))])
-            st.write("awayTeams = ", awayTeams)
+            if debugInd == 1: st.write("awayTeams = ", awayTeams)
         ##### Convert the home teams and away teams sets into lists so we can subset them
         homeTeams = homeTeams[0].tolist()
         awayTeams = list(awayTeams)
         endFlag1 = 1
         for i2 in range(0, len(homeTeams)):
-            st.write("i2 = ", i2)
-            st.write("awayTeams[i2] = ", awayTeams[i2])
-            st.write("homeTeams[i2] = ", homeTeams[i2])
+            if debugInd == 1: st.write("i2 = ", i2)
+            if debugInd == 1: st.write("awayTeams[i2] = ", awayTeams[i2])
+            if debugInd == 1: st.write("homeTeams[i2] = ", homeTeams[i2])
             ptstr = teamTrack.loc[teamTrack['team'] == homeTeams[i2], 'playedTeams']
             with pd.option_context('display.max_colwidth', -1):
                 ps = ptstr.to_string()
             st.write("str(ps) = ", ps)
             if awayTeams[i2] in ps:
                 dupTeam = 1
-                st.write("in dupTeam assignment")
+                if debugInd == 1: st.write("in dupTeam assignment")
             else:
                 dupTeam = 0
             if re.sub('[^A-Za-z]+', '', awayTeams[i2]) == re.sub('[^A-Za-z]+', '', homeTeams[i2]):
                 sameTown = 1
-                st.write("in sameTown assignment")
+                if debugInd == 1: st.write("in sameTown assignment")
             else:
                 sameTown = 0
             if dupTeam == 1 or sameTown == 1:
                 endFlag1 = 0
             if i2 < len(awayTeams) and endFlag1 == 0:
                 endFlag1 = dupSameTownCheckFunc(i2 + 1, len(awayTeams), i2, 1, 1)
-                st.write("After first dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
+                if debugInd == 1: st.write("After first dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
             ###### If we've gotten to the end and there is a still a duplicate match, check back at the beginning
             if i2 > 0 and endFlag1 == 0:
                 endFlag1 = dupSameTownCheckFunc(0, i2, i2, 1, 1)
@@ -285,22 +309,22 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
                                                                                   'team'].values[0]
 
         if gameDay.weekday() in range(0, 2):
-            if ((gameDay + dt.timedelta(days=2)) in us_holidays):
-                gameDay = gameDay + dt.timedelta(days=7)
+            if ((gameDay - dt.timedelta(days=5)) in us_holidays):
+                gameDay = gameDay - dt.timedelta(days=7)
             else:
-                gameDay = gameDay + dt.timedelta(days=2)
+                gameDay = gameDay - dt.timedelta(days=5)
         elif gameDay.weekday() in range(2, 4):
-            if ((gameDay + dt.timedelta(days=5)) in us_holidays):
-                gameDay = gameDay + dt.timedelta(days=7)
+            if ((gameDay - dt.timedelta(days=2)) in us_holidays):
+                gameDay = gameDay - dt.timedelta(days=7)
             else:
-                gameDay = gameDay + dt.timedelta(days=5)
-        ##### For weekend games, we need an added check to see if the following Monday is a holiday, making it a holiday weekend
+                gameDay = gameDay - dt.timedelta(days=2)
+        ##### For weekend games, we need an added check to see if the previous Monday is a holiday, making it a holiday weekend
         elif gameDay.weekday() in range(5, 7):
-            if ((gameDay + dt.timedelta(days=7)) in us_holidays or (gameDay + dt.timedelta(days=8)) in us_holidays or (
-                    gameDay + dt.timedelta(days=9)) in us_holidays):
-                gameDay = gameDay + dt.timedelta(days=14)
+            if ((gameDay - dt.timedelta(days=7)) in us_holidays or (gameDay - dt.timedelta(days=6)) in us_holidays or (
+                    gameDay - dt.timedelta(days=5)) in us_holidays):
+                gameDay = gameDay - dt.timedelta(days=14)
             else:
-                gameDay = gameDay + dt.timedelta(days=7)
+                gameDay = gameDay - dt.timedelta(days=7)
 
         ##### Check that home games and byes are even
         if (max(teamTrack['homeGames']) >= (min(teamTrack['homeGames']) + 3)):
@@ -318,7 +342,7 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, rs):
     st.header(leag + " Team Tracking Summary for " + seas + " Season")
     st.table(teamTrack.style)
     st.header(leag + " Schedule for " + seas + " Season")
-    st.table(leagueSched)
+    st.table(leagueSched.sort_index())
 
 
 # End makeSchedule function
@@ -337,7 +361,10 @@ if (season == "Fall"):
 gameMethod = st.sidebar.radio('Determine the Length of the Season', [
     'Number of Game Days (Limits the Season Length & Allows for 1 Additional Game for a Bye)',
     'Minimum Number of Games Played per Team (will Extend the Season Length)'])
-### Determine fit he start date should be calculated
+townMatch = st.sidebar.radio('Additional Game Options', [
+    'Have Inter-Town Match-Ups to End the Season (if possible)',
+    'Create all Match-ups Randomly'])
+### Determine if the start date should be calculated
 sdCalc = st.sidebar.checkbox("Manually enter the season start date?")
 if sdCalc:
     startDay = st.sidebar.date_input("Season Start Date (first game)")
@@ -368,4 +395,4 @@ else:
 
 # Main Panel Design
 if schedButton:
-    makeSchedule(season, year, league, startDay, numberGames, gameMethod, randomSeed)
+    makeSchedule(season, year, league, startDay, numberGames, gameMethod, townMatch, randomSeed)
