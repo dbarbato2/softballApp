@@ -24,10 +24,19 @@ debugInd = 1
 def makeSchedule(seas, yr, leag, sd, ng, gm, twnm, rs):
     #### First, create the array of team names
     teamList = []
+    sameTownTeams = []
+    sameTownTeamsHome = []
+    sameTownTeamsAway = []
     for i in range(0, len(teams)):
         counter = 1
         for j in range(0, teamCnt[i]):
             teamList.append(teams[i] + " Team #" + str(counter))
+            if teamCnt[i] % 2 == 0 or (teamCnt[i] - j) > 1:
+                sameTownTeams.append(teams[i] + " Team #" + str(counter))
+                ###Choose the even numbered teams to be home teams to make sure we don't have too many where we have to sample
+                if counter % 2 == 0:
+                    sameTownTeamsHome.append(teams[i] + " Team #" + str(counter))
+                    sameTownTeamsAway.append(teams[i] + " Team #" + str(counter - 1))
             counter = counter + 1
     totalTeams = len(teamList)
     #### Next, calculate the start day if it wasn't entered
@@ -90,7 +99,7 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, twnm, rs):
         firstGameDay = startDay + dt.timedelta(days=1)
     else:
         firstGameDay = startDay
-    #### Make the schedule in Reverse in case inter-town match-ups are required on the last day, first find the last game day
+    #### Need to find the last game day as we will make the schedule in Reverse in case inter-town match-ups are required on the last day
     h = firstGameDay
     for g in range(1, schedGames):
         if h.weekday() in range(0, 2):
@@ -113,13 +122,16 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, twnm, rs):
     #### End makeSchedule function
 
     #### sub-function to choose the teams with the least amount of byes
-    def byeTeamFunc(teamstoChooseFrom=""):
-        if teamstoChooseFrom == "":
+    def byeTeamFunc(teamstoChooseFrom=[]):
+        if len(teamstoChooseFrom) == 0:
             teamswMinByeGames = teamTrack[teamTrack['byeCount'] == min(teamTrack['byeCount'])].team
+            if debugInd == 1: st.write("teamswMinByeGames (in if) = ", teamswMinByeGames)
         else:
             teamswMinByeGames = teamstoChooseFrom
+            if debugInd == 1: st.write("teamswMinByeGames (in else) = ", teamswMinByeGames)
         if (totalTeams % 2 == 1):
-            byeTm = teamswMinByeGames.sample(n=1, random_state=rs)
+            byeTm = pd.DataFrame(teamswMinByeGames, columns = ['team']).sample(n=1, random_state=rs).squeeze(
+                        axis=1)
         else:
             byeTm = ""
         return byeTm
@@ -177,7 +189,7 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, twnm, rs):
     if debugInd == 1: st.write("lastgameday =", lastGameDay)
     #### Go through the assignments in reverse order in case the last game needs to have inter-town match-ups
     gameDay = lastGameDay
-    #for i in range(1, (schedGames + 1)):
+
     for i in range(schedGames, 0, -1):
         startIndex = (gamesPerGameDay * (i - 1)) + 1
         endIndex = gamesPerGameDay * i
@@ -185,16 +197,37 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, twnm, rs):
         for j in range(startIndex, endIndex + 1):
             leagueSched.loc[j - 1, 'date'] = gameDay
         ##### First, select the bye team, users can not adjust this preference
-        byeTeams = byeTeamFunc()
-        ##### Second, let's make sure home games are evened out as much as possible when choosing home teams this week
-        if (totalTeams % 2 == 1):
-            teamswMinHomeGames = homeGameFunc(teamTrack[teamTrack['team'] != byeTeams.values[0]].team, 'min')
-            firstChoiceTeams = set([x for x in teamList if x not in byeTeams.values]).intersection(
-                teamswMinHomeGames.values)
+        if (twnm == 'Have Inter-Town Match-Ups to End the Season (if possible)' and i == schedGames):
+            #### Just pick from the towns who don't have more than 1 team
+            byeChoiceTeams = set([x for x in teamList if x not in sameTownTeams])
+            if debugInd == 1: st.write("byeChoiceTeams =", byeChoiceTeams)
+            if debugInd == 1: st.write("length of byeChoiceTeams =", len(byeChoiceTeams))
+            btd = list(byeChoiceTeams)
+            if len(byeChoiceTeams) == 0: byeTeams = byeTeamFunc()
+            else: byeTeams = byeTeamFunc(btd)
+            if debugInd == 1: st.write("byeTeams =", byeTeams)
         else:
-            teamswMinHomeGames = homeGameFunc(teamTrack['team'], 'min')
-            firstChoiceTeams = [x for x in teamList if x in teamswMinHomeGames.values]
-            if debugInd == 1: st.write("firstChoiceTeams = ", firstChoiceTeams)
+            byeTeams = byeTeamFunc()
+        ##### Second, let's make sure home games are evened out as much as possible when choosing home teams this week
+        if (twnm == 'Have Inter-Town Match-Ups to End the Season (if possible)' and i == schedGames):
+            #### Just pick from the towns who do have more than 1 team
+            if (totalTeams % 2 == 1):
+                stt = [x for x in teamList if x not in byeTeams.values]
+                firstChoiceTeams = [x2 for x2 in stt if x2 in sameTownTeamsHome]
+                if debugInd == 1: st.write("firstChoiceTeams = ", firstChoiceTeams)
+            else:
+                firstChoiceTeams = [x2 for x2 in teamList if x2 in sameTownTeamsHome]
+                if debugInd == 1: st.write("firstChoiceTeams = ", firstChoiceTeams)
+        else:
+            if (totalTeams % 2 == 1):
+                teamswMinHomeGames = homeGameFunc(teamTrack[teamTrack['team'] != byeTeams.values[0]].team, 'min')
+                firstChoiceTeams = set([x for x in teamList if x not in byeTeams.values]).intersection(
+                    teamswMinHomeGames.values)
+                if debugInd == 1: st.write("firstChoiceTeams = ", firstChoiceTeams)
+            else:
+                teamswMinHomeGames = homeGameFunc(teamTrack['team'], 'min')
+                firstChoiceTeams = [x for x in teamList if x in teamswMinHomeGames.values]
+                if debugInd == 1: st.write("firstChoiceTeams = ", firstChoiceTeams)
         if (len(firstChoiceTeams) < gamesPerGameDay):
             if debugInd == 1: st.write("inside firstChoiceTeams if, need more home teams")
             ##### find how many more home teams need to be chosen for this date
@@ -206,7 +239,7 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, twnm, rs):
             secondChoiceTeams = set([y3 for y3 in sct2 if y3 not in teamswMaxHomeGames])
             if debugInd == 1: st.write("secondChoiceTeams = ", secondChoiceTeams)
             if (len(secondChoiceTeams) < homeGameDiff):
-                st.write("inside secondChoiceTeams if, still don't have enough home teams")
+                if debugInd == 1: st.write("inside secondChoiceTeams if, still don't have enough home teams")
                 ##### find how many more home teams need to be chosen for this date
                 homeGameDiff2 = gamesPerGameDay - len(firstChoiceTeams) - len(secondChoiceTeams)
                 ##### Last, choose randomly from among the remaining teams
@@ -225,7 +258,6 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, twnm, rs):
                         axis=1))
                 teamsIncluded = pd.DataFrame(tiTemp.union(firstChoiceTeams))
         else:
-            teamsIncluded = ''
             teamsIncluded = pd.DataFrame(firstChoiceTeams).sample(n=gamesPerGameDay, random_state=rs, replace=False)
         homeTeams = teamsIncluded
         ##### Now, choose opponents, try and avoid duplicate matches and inter-town matches if possible
@@ -247,7 +279,7 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, twnm, rs):
             ptstr = teamTrack.loc[teamTrack['team'] == homeTeams[i2], 'playedTeams']
             with pd.option_context('display.max_colwidth', -1):
                 ps = ptstr.to_string()
-            st.write("str(ps) = ", ps)
+            if debugInd == 1: st.write("str(ps) = ", ps)
             if awayTeams[i2] in ps:
                 dupTeam = 1
                 if debugInd == 1: st.write("in dupTeam assignment")
@@ -260,29 +292,31 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, twnm, rs):
                 sameTown = 0
             if dupTeam == 1 or sameTown == 1:
                 endFlag1 = 0
+            if (twnm == 'Have Inter-Town Match-Ups to End the Season (if possible)' and i == schedGames):
+                endFlag1 = 1
             if i2 < len(awayTeams) and endFlag1 == 0:
                 endFlag1 = dupSameTownCheckFunc(i2 + 1, len(awayTeams), i2, 1, 1)
                 if debugInd == 1: st.write("After first dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
             ###### If we've gotten to the end and there is a still a duplicate match, check back at the beginning
             if i2 > 0 and endFlag1 == 0:
                 endFlag1 = dupSameTownCheckFunc(0, i2, i2, 1, 1)
-                st.write("After second dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
+                if debugInd == 1: st.write("After second dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
             ###### If we can't get matchups avoiding duplicates and same town matchups, at least avoid duplicates
             if i2 < len(awayTeams) and endFlag1 == 0:
                 endFlag1 = dupSameTownCheckFunc(i2 + 1, len(awayTeams), i2, 1, 0)
-                st.write("After third dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
+                if debugInd == 1: st.write("After third dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
             ###### If we've gotten to the end and there is a still a duplicate match, check back at the beginning
             if i2 > 0 and endFlag1 == 0:
                 endFlag1 = dupSameTownCheckFunc(0, i2, i2, 1, 0)
-                st.write("After fourth dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
+                if debugInd == 1: st.write("After fourth dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
             ###### If we still can't avoid duplicates, at least try and avoid match-ups between teams in the same town as a last resort
             if i2 < len(awayTeams) and endFlag1 == 0:
                 endFlag1 = dupSameTownCheckFunc(i2 + 1, len(awayTeams), i2, 0, 1)
-                st.write("After fifth dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
+                if debugInd == 1: st.write("After fifth dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
             ###### If we've gotten to the end and there is a still a same town match-up, check back at the beginning
             if i2 > 0 and endFlag1 == 0:
                 endFlag1 = dupSameTownCheckFunc(0, i2, i2, 0, 1)
-                st.write("After sixth dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
+                if debugInd == 1: st.write("After sixth dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
         teamIndex = 0
         for l in range(startIndex - 1, endIndex):
             leagueSched.loc[l, 'homeTeam'] = homeTeams[teamIndex]
