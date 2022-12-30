@@ -18,7 +18,7 @@ import random
 st.title('Softball Scheduling - Metrowest League')
 us_holidays = holidays.UnitedStates()
 ### Indicator on whether to run the app in debug mode (makes the schedule calculation repeatable)
-debugInd = 1
+debugInd = 0
 
 # Function for creating the schedule
 def makeSchedule(seas, yr, leag, sd, ng, gm, twnm, rs):
@@ -218,6 +218,19 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, twnm, rs):
             else:
                 firstChoiceTeams = [x2 for x2 in teamList if x2 in sameTownTeamsHome]
                 if debugInd == 1: st.write("firstChoiceTeams = ", firstChoiceTeams)
+            if (len(firstChoiceTeams) < gamesPerGameDay):
+                homeGameDiffst = gamesPerGameDay - len(firstChoiceTeams)
+                if (totalTeams % 2 == 1):
+                    st1 = set([y for y in teamList if y not in byeTeams.values])
+                    st2 = set([y2 for y2 in st1 if y2 not in firstChoiceTeams])
+                    st3 = set([y3 for y3 in st2 if y3 not in sameTownTeamsAway])
+                else:
+                    st2 = set([y2 for y2 in teamList if y2 not in firstChoiceTeams])
+                    st3 = set([y3 for y3 in st2 if y3 not in sameTownTeamsAway])
+                stTemp = set(pd.DataFrame(st3).sample(n=homeGameDiffst, random_state=rs, replace=False).squeeze(
+                        axis=1))
+                firstChoiceTeams = list(set(firstChoiceTeams).union(stTemp))
+                if debugInd == 1: st.write("firstChoiceTeams within extra if sameTeam statement = ", firstChoiceTeams)
         else:
             if (totalTeams % 2 == 1):
                 teamswMinHomeGames = homeGameFunc(teamTrack[teamTrack['team'] != byeTeams.values[0]].team, 'min')
@@ -234,8 +247,11 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, twnm, rs):
             homeGameDiff = gamesPerGameDay - len(firstChoiceTeams)
             ##### Third, choose from among the remaining teams, those who have not played the most home games
             teamswMaxHomeGames = homeGameFunc(teamTrack['team'], 'max')
-            sct = set([y for y in teamList if y not in byeTeams.values])
-            sct2 = set([y2 for y2 in sct if y2 not in firstChoiceTeams])
+            if (totalTeams % 2 == 1):
+                sct = set([y for y in teamList if y not in byeTeams.values])
+                sct2 = set([y2 for y2 in sct if y2 not in firstChoiceTeams])
+            else:
+                sct2 = set([y2 for y2 in teamList if y2 not in firstChoiceTeams])
             secondChoiceTeams = set([y3 for y3 in sct2 if y3 not in teamswMaxHomeGames])
             if debugInd == 1: st.write("secondChoiceTeams = ", secondChoiceTeams)
             if (len(secondChoiceTeams) < homeGameDiff):
@@ -243,8 +259,11 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, twnm, rs):
                 ##### find how many more home teams need to be chosen for this date
                 homeGameDiff2 = gamesPerGameDay - len(firstChoiceTeams) - len(secondChoiceTeams)
                 ##### Last, choose randomly from among the remaining teams
-                tct = set([y for y in teamList if y not in byeTeams.values])
-                tct2 = set([y2 for y2 in tct if y2 not in firstChoiceTeams])
+                if (totalTeams % 2 == 1):
+                    tct = set([y for y in teamList if y not in byeTeams.values])
+                    tct2 = set([y2 for y2 in tct if y2 not in firstChoiceTeams])
+                else:
+                    tct2 = set([y2 for y2 in teamList if y2 not in firstChoiceTeams])
                 thirdChoiceTeams = set([y3 for y3 in tct2 if y3 not in secondChoiceTeams])
                 tiTemp = set(
                     pd.DataFrame(thirdChoiceTeams).sample(n=homeGameDiff2, random_state=rs, replace=False).squeeze(
@@ -292,8 +311,6 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, twnm, rs):
                 sameTown = 0
             if dupTeam == 1 or sameTown == 1:
                 endFlag1 = 0
-            if (twnm == 'Have Inter-Town Match-Ups to End the Season (if possible)' and i == schedGames):
-                endFlag1 = 1
             if i2 < len(awayTeams) and endFlag1 == 0:
                 endFlag1 = dupSameTownCheckFunc(i2 + 1, len(awayTeams), i2, 1, 1)
                 if debugInd == 1: st.write("After first dupSameTownCheckFunc call and endFlag1 = ", endFlag1)
@@ -320,7 +337,24 @@ def makeSchedule(seas, yr, leag, sd, ng, gm, twnm, rs):
         teamIndex = 0
         for l in range(startIndex - 1, endIndex):
             leagueSched.loc[l, 'homeTeam'] = homeTeams[teamIndex]
-            leagueSched.loc[l, 'awayTeam'] = awayTeams[teamIndex]
+            leagueSched.loc[l, 'awayTeam'] = ""
+            if (twnm == 'Have Inter-Town Match-Ups to End the Season (if possible)' and i == schedGames):
+                for m in range(0, len(sameTownTeamsHome)):
+                    if homeTeams[teamIndex] == sameTownTeamsHome[m]:
+                        leagueSched.loc[l, 'awayTeam'] = sameTownTeamsAway[m]
+                if leagueSched.loc[l, 'awayTeam'] == "":
+                    if (totalTeams % 2 == 1):
+                        lat = set([v for v in teamList if v not in byeTeams.values])
+                        lat2 = set([v for v in lat if v not in sameTownTeamsAway])
+                        lastAwayTemp = list(set([v2 for v2 in lat2 if v2 not in homeTeams]))[0]
+                        if debugInd == 1: st.write("lastAwayTemp = ", lastAwayTemp)
+                    else:
+                        lat = set([v for v in teamList if v not in homeTeams])
+                        lastAwayTemp = list(set([v2 for v2 in lat if v2 not in sameTownTeamsAway]))[0]
+                        if debugInd == 1: st.write("lastAwayTemp = ", lastAwayTemp)
+                    leagueSched.loc[l, 'awayTeam'] = lastAwayTemp
+            else:
+                leagueSched.loc[l, 'awayTeam'] = awayTeams[teamIndex]
             teamIndex += 1
         # Should only be 1 bye team at most
         if (totalTeams % 2 == 1):
@@ -405,7 +439,7 @@ if sdCalc:
 else:
     startDay = ""
 ### Enter the year
-year = st.sidebar.number_input("Enter the Year", 2010, 2100, 2022)
+year = st.sidebar.number_input("Enter the Year", 2010, 2100, 2023)
 ### Select the league
 league = st.sidebar.radio('Which League is this for', ['Minors', 'Majors', 'Seniors'])
 ### Set the total number of towns for the for loop
