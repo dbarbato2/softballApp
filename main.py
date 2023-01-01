@@ -3,7 +3,6 @@
 # 1. Format the tables that output the schedule
 # 2. Functionality to limit the number of home games on a single day per town
 
-pip install holidays
 import datetime as dt
 import holidays
 import math
