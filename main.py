@@ -5,9 +5,9 @@
 
 pip install holidays
 import datetime as dt
+import holidays
 import math
 from random import sample
-import holidays
 import pandas as pd
 import streamlit as st
 import re
