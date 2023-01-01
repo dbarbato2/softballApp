@@ -17,7 +17,7 @@ app (i.e. games every Tuesday/Thursday for Majors in the Spring), then game days
 however, users can specify additional games/weeks in the schedule should be added to account for the presence of byes.
 5. Rules such as avoiding duplicate match-ups, inter-town match-ups, and multiple home games for a town on the same day 
 are built in with their own prioritization and can not be altered. The first priority is to even out byes, the second is to even
-out home games, the third is avoid duplicate match-ups, and the fourth is to avoid inter-town match-ups.
+out home games, the third is avoid duplicate match-ups, and the fourth is to avoid inter-town match-ups (with the exception of option #4 discussed below).
 
 ##How it Works
 Users can run the application once deployed or as a Python script by typing 'streamlit run main.py' once the streamlit package for
@@ -28,15 +28,16 @@ Python has been installed. In the sidebar on the left, users will need to select
 essentially limit the season to n or n+1 games (in the event of an odd number of teams), where n is the number of games parameter
 selected above. The second option is to ensure that each team plays at least as many games, n, as specified in the number of games
 parameter selected above. Note that this second option may potentially extend the season substantially.
-4. An option to manually enter the season start date (turned off by default). Typically the spring season will start on the
+4. Additional Game Options. Users can choose to force match-ups between teams from the same town on the last game day of the season (default). This will force, for example, Ashland Team #1 vs. Ashland Team #2 match-up for the last game. As a result, bye teams and other match-ups will be chosen from towns with only a single team or towns with an odd number of teams. Otherwise, users can select to just have all game match-ups selected randomly.
+5. An option to manually enter the season start date (turned off by default). Typically the spring season will start on the
 last Monday in April, the summer season on the third Thursday in June, and the fall on the first Saturday in September. Spring and Summer
 game days will be every Monday & Wednesday for the Minors and every Tuesday & Thursday for the Majors/Seniors. Fall game days will be
 every Saturday for the Minors and every Sunday for the Majors/Seniors. All major U.S. holidays and holiday weekends are avoided by default.
-5. The year for the season. This is used solely to calculate the dates correctly.
-6. The league (options include Minors, Majors, and Seniors). For the Metrowest Softball League, Minors refers to our 3rd & 4th grade league
+6. The year for the season. This is used solely to calculate the dates correctly.
+7. The league (options include Minors, Majors, and Seniors). For the Metrowest Softball League, Minors refers to our 3rd & 4th grade league
 (U10), Majors refers to our 5th & 6th grade league (U12), and Seniors refers to our 7th & 8th grade league (U14). All implications of
 this selection are discussed above.
-7. The number of towns playing. Based on this selection, text boxes will appear for each town asking for the name of the town and the number 
+8. The number of towns playing. Based on this selection, text boxes will appear for each town asking for the name of the town and the number 
 of teams playing within each town. If x towns are selected, town names and number of teams must be selected for all x towns. Naming convention
 in the schedule will be 'Town Name' Team #'i', where 'Town Name' is the text entered by the user and 'i' is the sequentially numbering of the team.
 Currently, custom team names are not allowed, but could be created using 1 team per town and custom names for each town.
