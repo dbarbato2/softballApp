@@ -3,6 +3,5 @@ datetime
 holidays
 pandas
 streamlit
-random
 
 ###### Requirements with Version Specifiers ######
