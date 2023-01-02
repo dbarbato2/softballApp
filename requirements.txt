@@ -1,7 +1,8 @@
 ###### Requirements without Version Specifiers ######
 datetime
 holidays
-pandas
-streamlit
 
 ###### Requirements with Version Specifiers ######
+streamlit == 1.6
+pandas == 1.3.2
+click==8
